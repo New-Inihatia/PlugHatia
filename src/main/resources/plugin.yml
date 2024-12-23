@@ -1,0 +1,26 @@
+name: PlugHatia
+version: '${project.version}'
+main: newinihatia.plughatia.PlugHatia
+api-version: 1.21
+authors: [ Heinoushare ]
+commands:
+  setrace:
+    description: set race of a player
+    usage: setRace <target player> <race>
+    permission: plughatia.op
+    permission-message: "You do not have permission to use this command"
+  setname:
+    description: set name of a player
+#    usage: setName <target player> <name>
+    permission: plughatia.op
+    permission-message: "You do not have permission to use this command"
+  speed:
+    description: kachow!
+    usage: speed
+  leap:
+    description: bunnyboi
+    usage: leap
+permissions:
+  plughatia.op:
+    description: op
+    default: op
