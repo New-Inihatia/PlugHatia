@@ -1,24 +1,23 @@
 package newinihatia.plughatia.menus.anvils;
 
-import newinihatia.plughatia.items.AnvilRecipe;
 import newinihatia.plughatia.items.AnvilRecipes;
-import newinihatia.plughatia.menus.Button;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-
-import java.util.Map;
 
 public class IronAnvilMenu extends AnvilMenu {
 
-    @Override
-    public void recipesFunction(Player player) {
-        System.out.println("recipes:!!!!");
-        new RecipesMenu().displayTo(player);
+    public IronAnvilMenu() {
+        super(AnvilRecipes.ironAnvilWeldingRecipes);
+        this.setTitle("Iron Anvil");
     }
 
-    private class RecipesMenu extends AnvilMenu.RecipesMenu {
-        public RecipesMenu() {
-            super(IronAnvilMenu.this, AnvilRecipes.ironAnvilRecipes);
+    @Override
+    public void recipesFunction(Player player) {
+        new SmithingRecipesMenu().displayTo(player);
+    }
+
+    private class SmithingRecipesMenu extends AnvilMenu.SmithingRecipesMenu {
+        public SmithingRecipesMenu() {
+            super(IronAnvilMenu.this, AnvilRecipes.ironAnvilSmithingRecipes);
             init();
         }
     }

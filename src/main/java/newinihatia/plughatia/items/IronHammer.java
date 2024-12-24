@@ -17,18 +17,9 @@ import java.util.List;
 import java.util.UUID;
 
 public class IronHammer {
-    public static ItemStack createIronHammer(int amount) {
-        ItemStack item = new ItemStack(Material.IRON_PICKAXE, amount);
-        Damageable meta = (Damageable) item.getItemMeta();
-        meta.setDisplayName("Iron Hammer");
-        List<String> lore = new ArrayList<>();
-        meta.setLore(lore);
-        meta.setMaxDamage(200);
-        meta.addAttributeModifier(Attribute.GENERIC_ATTACK_DAMAGE, new AttributeModifier(UUID.randomUUID(), "generic.attack_damage", 8, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
-        meta.addAttributeModifier(Attribute.GENERIC_ATTACK_SPEED, new AttributeModifier(UUID.randomUUID(), "generic.attack_speed", -3.1, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
-        meta.setCustomModelData(2);
-        item.setItemMeta(meta);
 
+    public static ItemStack initIronHammer() {
+        ItemStack item = createIronHammer(1);
         ShapedRecipe sr = new ShapedRecipe(NamespacedKey.minecraft("iron_hammer_l"), item);
         sr.shape(
                 "NI ",
@@ -50,6 +41,21 @@ public class IronHammer {
         sr2.setIngredient('I', Material.IRON_INGOT);
         sr2.setIngredient('S', Material.STICK);
         Bukkit.getServer().addRecipe(sr2);
+
+        return item;
+    }
+
+    public static ItemStack createIronHammer(int amount) {
+        ItemStack item = new ItemStack(Material.IRON_PICKAXE, amount);
+        Damageable meta = (Damageable) item.getItemMeta();
+        meta.setDisplayName("Iron Hammer");
+        List<String> lore = new ArrayList<>();
+        meta.setLore(lore);
+        meta.setMaxDamage(200);
+        meta.addAttributeModifier(Attribute.GENERIC_ATTACK_DAMAGE, new AttributeModifier(UUID.randomUUID(), "generic.attack_damage", 8, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+        meta.addAttributeModifier(Attribute.GENERIC_ATTACK_SPEED, new AttributeModifier(UUID.randomUUID(), "generic.attack_speed", -3.1, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+        meta.setCustomModelData(2);
+        item.setItemMeta(meta);
 
         return item;
     }

@@ -39,6 +39,15 @@ public class MenuListener implements Listener {
     public void onInventoryClose(InventoryCloseEvent event) {
         Player player = (Player) event.getPlayer();
         if (player.hasMetadata("NewInihatiaMenu")) {
+            // Return items to player
+//            Inventory inventory = event.getInventory();
+//            for (int i = 0; i < inventory.getSize(); i++) {
+//                if (inventory.getItem(i) != null) {
+//                    if (((Menu) player.getMetadata("NewInihatiaMenu").get(0).value()).getButton(i) == null) {
+//                        player.getInventory().addItem(inventory.getItem(i));
+//                    }
+//                }
+//            }
             player.removeMetadata("NewInihatiaMenu", PlugHatia.getPlugin());
         }
     }
@@ -47,6 +56,15 @@ public class MenuListener implements Listener {
     public void onPlayerLeave(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         if (player.hasMetadata("NewInihatiaMenu")) {
+            // Return items to player
+//            Inventory inventory = player.getOpenInventory().getTopInventory();
+//            for (int i = 0; i < inventory.getSize(); i++) {
+//                if (inventory.getItem(i) != null) {
+//                    if (((Menu) player.getMetadata("NewInihatiaMenu").get(0).value()).getButton(i) == null) {
+//                        player.getInventory().addItem(inventory.getItem(i));
+//                    }
+//                }
+//            }
             player.removeMetadata("NewInihatiaMenu", PlugHatia.getPlugin());
         }
     }

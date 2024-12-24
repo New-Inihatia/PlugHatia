@@ -9,6 +9,7 @@ import newinihatia.plughatia.events.mithril.CraftMithrilIngot;
 import newinihatia.plughatia.events.mithril.CraftMithrilTools;
 import newinihatia.plughatia.events.steel.CraftSteelArmor;
 import newinihatia.plughatia.events.steel.CraftSteelTools;
+import newinihatia.plughatia.events.steel.HarvestCrucibleOfSteel;
 import newinihatia.plughatia.menus.MenuListener;
 import org.bukkit.Bukkit;
 
@@ -57,6 +58,10 @@ public class EventManager {
         getServer().getPluginManager().registerEvents(new MenuListener(), PlugHatia.getPlugin());
 
         getServer().getPluginManager().registerEvents(new AnvilUse(), PlugHatia.getPlugin());
+
+        getServer().getPluginManager().registerEvents(new HarvestCrucibleOfSteel(), PlugHatia.getPlugin());
+
+        getServer().getPluginManager().registerEvents(new ItemTemperatureControl(), PlugHatia.getPlugin());
 
     }
 

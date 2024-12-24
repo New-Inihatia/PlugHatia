@@ -1,16 +1,20 @@
 package newinihatia.plughatia.items;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
+import newinihatia.plughatia.PlugHatia;
+import newinihatia.plughatia.items.steel.CrucibleOfSteel;
+import newinihatia.plughatia.items.steel.DoubleSteelIngot;
+import newinihatia.plughatia.items.steel.PigIron;
+import newinihatia.plughatia.items.steel.SteelIngot;
 import org.bukkit.NamespacedKey;
-import org.bukkit.inventory.BlastingRecipe;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.HashMap;
+import java.util.Map;
 
-import static newinihatia.plughatia.items.Flux.createFlux;
-import static newinihatia.plughatia.items.IronHammer.createIronHammer;
+import static newinihatia.plughatia.items.Flux.initFlux;
+import static newinihatia.plughatia.items.IronHammer.initIronHammer;
 import static newinihatia.plughatia.items.elvenSteel.ElvenSteelArmor.elvenSteelArmorInit;
 import static newinihatia.plughatia.items.elvenSteel.ElvenSteelIngot.createElvenSteelIngot;
 import static newinihatia.plughatia.items.elvenSteel.ElvenSteelTools.elvenSteelToolsInit;
@@ -18,19 +22,32 @@ import static newinihatia.plughatia.items.mithril.MithrilArmor.mithrilArmorInit;
 import static newinihatia.plughatia.items.mithril.MithrilIngot.createMithrilIngot;
 import static newinihatia.plughatia.items.mithril.MithrilTools.mithrilToolsInit;
 import static newinihatia.plughatia.items.steel.SteelArmor.steelArmorInit;;
-import static newinihatia.plughatia.items.steel.SteelIngot.createSteelIngot;
 import static newinihatia.plughatia.items.steel.SteelTools.steelToolsInit;
 
 // for future reference https://minecraft.fandom.com/wiki/Attribute#Operations
 
 public class ItemManager {
 
+    /* Heatables */
+    public static Map<String, Heatable> heatables = new HashMap<>();
+
+    public static SteelIngot steelIngotHeatable = new SteelIngot();
+    public static DoubleSteelIngot doubleSteelIngotHeatable = new DoubleSteelIngot();
+    public static PigIron pigIronHeatable = new PigIron();
+    public static CrucibleOfSteel crucibleOfSteelHeatable = new CrucibleOfSteel();
+
     public static ItemStack ironHammer;
+
+    public static ItemStack crucibleOfSteel;
 
     public static ItemStack flux;
 
+    public static ItemStack pigIron;
+
     /* Base materials */
     public static ItemStack steelIngot;
+    public static ItemStack doubleSteelIngot;
+
     public static ItemStack elvenSteelIngot;
     public static ItemStack mithrilIngot;
 
@@ -84,12 +101,17 @@ public class ItemManager {
     public static ItemStack mithrilHoe;
 
     public static void init() {
-        ironHammer = createIronHammer(1);
 
-        flux = createFlux(1);
+        ironHammer = initIronHammer();
 
-        steelIngot = createSteelIngot(1, 0, 0);
-        Bukkit.addRecipe(new BlastingRecipe(NamespacedKey.minecraft("steel_ingot"), steelIngot, Material.IRON_INGOT, 1.0f, 15 * 20));
+        crucibleOfSteel = crucibleOfSteelHeatable.init();
+
+        flux = initFlux();
+
+        pigIron = pigIronHeatable.init();
+
+        steelIngot = steelIngotHeatable.init();
+        doubleSteelIngot = doubleSteelIngotHeatable.init();
         steelArmorInit();
         steelToolsInit();
 
@@ -100,6 +122,21 @@ public class ItemManager {
         mithrilIngot = createMithrilIngot(1, 0, 0);
         mithrilArmorInit();
         mithrilToolsInit();
+
+        heatables.put(crucibleOfSteelHeatable.heatableName, crucibleOfSteelHeatable);
+        heatables.put(pigIronHeatable.heatableName, pigIronHeatable);
+        heatables.put(steelIngotHeatable.heatableName, steelIngotHeatable);
+        heatables.put(doubleSteelIngotHeatable.heatableName, doubleSteelIngotHeatable);
+
+        recipesInit();
+    }
+
+    public static void recipesInit() {
+        // Heatables
+        crucibleOfSteelHeatable.recipesInit();
+        pigIronHeatable.recipesInit();
+        steelIngotHeatable.recipesInit();
+        doubleSteelIngotHeatable.recipesInit();
     }
 
     public static boolean checkCraft(ItemStack result, CraftingInventory inv, HashMap<Integer, ItemStack> ingredients) {
@@ -144,6 +181,21 @@ public class ItemManager {
         }
         else {
             return false;
+        }
+        return true;
+    }
+
+    public static boolean heatableItemsAreEquivalent(ItemStack item1, ItemStack item2) {
+        if (item1.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(PlugHatia.getPlugin(), "heatable_name"), PersistentDataType.STRING)
+                &&
+                item2.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(PlugHatia.getPlugin(), "heatable_name"), PersistentDataType.STRING)) {
+            if (item1.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(PlugHatia.getPlugin(), "heatable_name"), PersistentDataType.STRING)
+                    ==
+                    item2.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(PlugHatia.getPlugin(), "heatable_name"), PersistentDataType.STRING)) {
+                return true;
+            }
+        } else {
+            return areEquivalent(item1, item2);
         }
         return true;
     }

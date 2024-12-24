@@ -2,7 +2,9 @@ package newinihatia.plughatia.menus.anvils;
 
 import com.google.common.collect.Multimap;
 import newinihatia.plughatia.PlugHatia;
-import newinihatia.plughatia.items.AnvilRecipe;
+import newinihatia.plughatia.events.ItemTemperatureControl;
+import newinihatia.plughatia.items.AnvilSmithingRecipe;
+import newinihatia.plughatia.items.AnvilWeldingRecipe;
 import newinihatia.plughatia.items.ItemManager;
 import newinihatia.plughatia.menus.Button;
 import newinihatia.plughatia.menus.Menu;
@@ -26,7 +28,8 @@ public class AnvilMenu extends Menu {
     private ItemStack ironHammerClone;
     private Integer greenPointer = null;
     private Integer redPointer = null;
-    private AnvilRecipe selectedRecipe = null;
+    private AnvilSmithingRecipe selectedSmithingRecipe = null;
+    private Set<AnvilWeldingRecipe> anvilWeldingRecipes;
 
     private static final Map<String, Integer> hitLocationMap = Map.of(
             "HL", 5,
@@ -40,8 +43,7 @@ public class AnvilMenu extends Menu {
     );
 
 
-    public AnvilMenu() {
-        this.setTitle("Anvil");
+    public AnvilMenu(Set<AnvilWeldingRecipe> anvilWeldingRecipes) {
         this.setSize(9*5);
         this.setMaxStackSize(1);
 
@@ -51,6 +53,478 @@ public class AnvilMenu extends Menu {
         for (Map.Entry<Attribute, AttributeModifier> entry : modifiers.entries()) {
             ironHammerCloneMeta.removeAttributeModifier(entry.getKey());
         }
+
+        this.anvilWeldingRecipes = anvilWeldingRecipes;
+
+        resetAnvil();
+    }
+
+    private void hit(int value, Player player) {
+        if (greenPointer == null) {
+            return;
+        }
+
+        int oldGreenPointer = greenPointer;
+        greenPointer += value;
+        if (greenPointer > 8) greenPointer = 8;
+        if (greenPointer < 0) greenPointer = 0;
+
+        barGlassFilling(9*3 + oldGreenPointer);
+
+        addButton(new Button(9*3 + greenPointer) {
+            @Override
+            public ItemStack getItem() {
+                ItemStack green = new ItemStack(Material.EMERALD);
+                ItemMeta meta = green.getItemMeta();
+                meta.setDisplayName(" ");
+                List<String> lore = new ArrayList<>();
+                meta.setLore(lore);
+                green.setItemMeta(meta);
+                return green;
+            }
+
+            @Override
+            public void onClick(Player player) {
+
+            }
+        });
+
+        // update last three hits
+        ItemStack finalizeBuffer1 = getButton(3+9).getItem();
+        addButton(new Button(2+9) {
+            @Override
+            public ItemStack getItem() {
+                return finalizeBuffer1;
+            }
+
+            @Override
+            public void onClick(Player player) {
+
+            }
+        });
+        ItemStack finalizeBuffer2 = getButton(4+9).getItem();
+        addButton(new Button(3+9) {
+            @Override
+            public ItemStack getItem() {
+                return finalizeBuffer2;
+            }
+
+            @Override
+            public void onClick(Player player) {
+
+            }
+        });
+        addButton(new Button(4+9) {
+            @Override
+            public ItemStack getItem() {
+                if (value == -1) {
+                    return anvilInventory.getItem(5);
+                }
+                else if (value == -2) {
+                    return anvilInventory.getItem(6);
+                }
+                else if (value == -3) {
+                    return anvilInventory.getItem(5+9);
+                }
+                else if (value == -4) {
+                    return anvilInventory.getItem(6+9);
+                }
+
+                else if (value == 1) {
+                    return anvilInventory.getItem(7);
+                }
+                else if (value == 2) {
+                    return anvilInventory.getItem(8);
+                }
+                else if (value == 3) {
+                    return anvilInventory.getItem(7+9);
+                }
+                else if (value == 4) {
+                    return anvilInventory.getItem(8+9);
+                }
+                return null;
+            }
+
+            @Override
+            public void onClick(Player player) {
+
+            }
+        });
+
+        anvilInventory = player.getOpenInventory().getTopInventory();
+
+        anvilInventory.setItem(18+2, ItemTemperatureControl.adjustTemperature(anvilInventory.getItem(18+2)));
+        anvilInventory.setItem(18+3, ItemTemperatureControl.adjustTemperature(anvilInventory.getItem(18+3)));
+        if (checkSmithingRecipe()) {
+            anvilInventory.setItem(18+2, null);
+            anvilInventory.setItem(18+3, selectedSmithingRecipe.getResult());
+
+            // Turn recipes back into book
+            addButton(new Button(4+18) {
+                @Override
+                public ItemStack getItem() {
+                    ItemStack book = new ItemStack(Material.BOOK);
+                    ItemMeta meta = book.getItemMeta();
+                    meta.setDisplayName("Recipes");
+                    List<String> lore = new ArrayList<>();
+                    meta.setLore(lore);
+                    book.setItemMeta(meta);
+                    return book;
+                }
+
+                @Override
+                public void onClick(Player player) {
+                    anvilInventory = player.getOpenInventory().getTopInventory();
+                    recipesFunction(player);
+                }
+            });
+
+            // get rid of pointers
+            barGlassFilling(9*4 + greenPointer);
+            barGlassFilling(9*4 + redPointer);
+
+            player.giveExp(selectedSmithingRecipe.getExperience());
+
+            resetAnvil();
+        }
+
+        for (Map.Entry<Integer, Button> entry : getButtons().entrySet()) {
+            Button button = entry.getValue();
+            anvilInventory.setItem(button.getSlot(), button.getItem());
+        }
+
+        if (player.hasMetadata("NewInihatiaMenu")) {
+            player.closeInventory();
+        }
+        player.setMetadata("NewInihatiaMenu", new FixedMetadataValue(PlugHatia.getPlugin(), getAnvilMenu()));
+        player.openInventory(anvilInventory);
+    }
+
+    private boolean checkSmithingRecipe() {
+        if (selectedSmithingRecipe == null) {
+            return false;
+        }
+
+        boolean[] recipePossibility = checkSmithingRecipePossibility(selectedSmithingRecipe);
+        if (!recipePossibility[0] || !recipePossibility[1]) {
+            return false;
+        }
+
+        if (!Objects.equals(greenPointer, redPointer)) {
+            return false;
+        }
+
+        int i = 2;
+        for (String hit : selectedSmithingRecipe.getLastThreeHits()) {
+            if (hit != null) {
+                if (!getButton(i).getItem().isSimilar(getButton(i+9).getItem())) {
+                    return false;
+                }
+            }
+            i++;
+        }
+        return true;
+    }
+
+    private void weld(Player player) {
+        anvilInventory = player.getOpenInventory().getTopInventory();
+
+        anvilInventory.setItem(0, ItemTemperatureControl.adjustTemperature(anvilInventory.getItem(0)));
+        anvilInventory.setItem(1, ItemTemperatureControl.adjustTemperature(anvilInventory.getItem(1)));
+        AnvilWeldingRecipe weldingRecipe = checkWeldingRecipe();
+        if (weldingRecipe != null) {
+            anvilInventory.setItem(0, null);
+            anvilInventory.setItem(1, null);
+            anvilInventory.setItem(9, weldingRecipe.getResult());
+            player.giveExp(weldingRecipe.getExperience());
+        }
+    }
+
+    private AnvilWeldingRecipe checkWeldingRecipe() {
+
+        if (anvilInventory.getItem(0) == null || anvilInventory.getItem(1) == null) {
+            return null;
+        }
+        if (anvilInventory.getItem(9) == null) {
+            return null;
+        }
+        if (!anvilInventory.getItem(9).isSimilar(ItemManager.flux)) {
+            return null;
+        }
+
+        Set<ItemStack> ingredients = new HashSet<>();
+        ingredients.add(anvilInventory.getItem(0));
+        ingredients.add(anvilInventory.getItem(1));
+        for (AnvilWeldingRecipe weldingRecipe : anvilWeldingRecipes) {
+            boolean hasIngredients = true;
+            boolean properTemps = true;
+            Set<ItemStack> ingredientsCopy = new HashSet<>(ingredients);
+            for (ItemStack item : weldingRecipe.getIngredients()) {
+                boolean hasIngredient = false;
+                boolean properTemp = false;
+                for (ItemStack ingredient : ingredientsCopy) {
+                    if (ingredient != null) {
+                        if (ItemManager.heatableItemsAreEquivalent(item, ingredient)) {
+                            if (item.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(PlugHatia.getPlugin(), "temperature"))) {
+                                double temperature = item.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(PlugHatia.getPlugin(), "temperature"), PersistentDataType.DOUBLE);
+                                if (temperature > 0) {
+                                    if (ingredient.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(PlugHatia.getPlugin(), "temperature"))) {
+                                        if (ingredient.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(PlugHatia.getPlugin(), "temperature"), PersistentDataType.DOUBLE) >= temperature) {
+                                            properTemp = true;
+                                        }
+                                    }
+                                }
+                            } else {
+                                properTemp = true;
+                            }
+                            ingredientsCopy.remove(ingredient);
+                            hasIngredient = true;
+                            break;
+                        }
+                    }
+                }
+                if (hasIngredient) {
+                    if (!properTemp) {
+                        properTemps = false;
+                    }
+                } else {
+                    hasIngredients = false;
+                }
+            }
+            if (hasIngredients && properTemps) {
+                return weldingRecipe;
+            }
+        }
+        return null;
+    }
+
+    public AnvilMenu getAnvilMenu() {
+        return this;
+    }
+
+    public void recipesFunction(Player player) {};
+
+    protected boolean[] checkSmithingRecipePossibility(AnvilSmithingRecipe recipe) {
+        Set<ItemStack> ingredients = new HashSet<>();
+        ingredients.add(anvilInventory.getItem(2+18));
+        ingredients.add(anvilInventory.getItem(3+18));
+        boolean hasIngredients = true;
+        boolean properTemps = true;
+        Set<ItemStack> ingredientsCopy = new HashSet<>(ingredients);
+        for (ItemStack item : recipe.getIngredients()) {
+            boolean hasIngredient = false;
+            boolean properTemp = false;
+            for (ItemStack ingredient : ingredientsCopy) {
+                if (ingredient != null) {
+                    if (ItemManager.heatableItemsAreEquivalent(item, ingredient)) {
+                        if (item.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(PlugHatia.getPlugin(), "temperature"))) {
+                            double temperature = item.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(PlugHatia.getPlugin(), "temperature"), PersistentDataType.DOUBLE);
+                            if (temperature > 0) {
+                                if (ingredient.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(PlugHatia.getPlugin(), "temperature"))) {
+                                    if (ingredient.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(PlugHatia.getPlugin(), "temperature"), PersistentDataType.DOUBLE) >= temperature) {
+                                        properTemp = true;
+                                    }
+                                }
+                            }
+                        } else {
+                            properTemp = true;
+                        }
+                        ingredientsCopy.remove(ingredient);
+                        hasIngredient = true;
+                        break;
+                    }
+                }
+            }
+            if (hasIngredient) {
+                if (!properTemp) {
+                    properTemps = false;
+                }
+            } else {
+                hasIngredients = false;
+                break;
+            }
+        }
+        return new boolean[] {hasIngredients, properTemps};
+    }
+
+    protected abstract class SmithingRecipesMenu extends Menu {
+
+        private AnvilMenu anvilMenu;
+        public Set<AnvilSmithingRecipe> recipes;
+
+        public SmithingRecipesMenu(AnvilMenu anvilMenu, Set<AnvilSmithingRecipe> recipes) {
+            super(AnvilMenu.this);
+            this.anvilMenu = anvilMenu;
+            this.recipes = recipes;
+            init();
+        }
+
+        protected void init() {
+            setSize(9*3);
+            setTitle("Recipes");
+            addButton(new Button(9*3 - 1) {
+                @Override
+                public ItemStack getItem() {
+                    ItemStack door = new ItemStack(Material.OAK_DOOR);
+                    ItemMeta meta = door.getItemMeta();
+                    meta.setDisplayName("Back to Anvil");
+                    List<String> lore = new ArrayList<>();
+                    meta.setLore(lore);
+                    door.setItemMeta(meta);
+                    return door;
+                }
+
+                @Override
+                public void onClick(Player player) {
+                    for (Map.Entry<Integer, Button> entry : anvilMenu.getButtons().entrySet()) {
+                        Button button = entry.getValue();
+                        anvilInventory.setItem(button.getSlot(), button.getItem());
+                    }
+
+                    if (player.hasMetadata("NewInihatiaMenu")) {
+                        player.closeInventory();
+                    }
+                    player.setMetadata("NewInihatiaMenu", new FixedMetadataValue(PlugHatia.getPlugin(), getAnvilMenu()));
+                    player.openInventory(anvilInventory);
+                }
+            });
+
+            int slot = 0;
+            for (AnvilSmithingRecipe recipe : recipes) {
+                boolean[] recipePossibilityBools = checkSmithingRecipePossibility(recipe);
+                boolean hasIngredients = recipePossibilityBools[0];
+                boolean properTemps = recipePossibilityBools[1];
+
+                if (hasIngredients) {
+                    boolean finalProperTemps = properTemps;
+                    addButton(new Button(slot) {
+                        @Override
+                        public ItemStack getItem() {
+                            ItemStack item = recipe.getResult();
+                            ItemMeta meta = item.getItemMeta();
+                            List<String> lore = new ArrayList<>();
+                            if (!finalProperTemps) {
+                                lore.add(ChatColor.RED + "Ingredients need to be heated!");
+                            }
+                            meta.setLore(lore);
+                            item.setItemMeta(meta);
+                            return item;
+                        }
+
+                        @Override
+                        public void onClick(Player player) {
+                            // Adding buttons will overwrite old ones
+                            int hitSlot = 2;
+                            String[] orderStrings = {"Last: ", "Second: ", "First: "};
+                            for (String hitType : recipe.getLastThreeHits()) {
+                                if (hitType != null) {
+                                    int finalHitSlot = hitSlot;
+                                    anvilMenu.addButton(new Button(finalHitSlot) {
+                                        @Override
+                                        public ItemStack getItem() {
+                                            ItemStack wantedHit = anvilInventory.getItem(hitLocationMap.get(hitType)).clone();
+
+                                            wantedHit.getItemMeta().setDisplayName(orderStrings[finalHitSlot - 2] + wantedHit.getItemMeta().getDisplayName());
+                                            return anvilInventory.getItem(hitLocationMap.get(hitType));
+                                        }
+
+                                        @Override
+                                        public void onClick(Player player) {
+
+                                        }
+                                    });
+                                }
+                                hitSlot++;
+                            }
+
+                            greenPointer = recipe.getGreenPointerStart();
+                            redPointer = recipe.getRedPointer();
+
+                            for (int i = 9*3; i < anvilInventory.getSize(); i++) {
+                                anvilMenu.barGlassFilling(i);
+                            }
+
+                            anvilMenu.addButton(new Button(9*3 + greenPointer) {
+                                @Override
+                                public ItemStack getItem() {
+                                    ItemStack green = new ItemStack(Material.EMERALD);
+                                    ItemMeta meta = green.getItemMeta();
+                                    meta.setDisplayName(" ");
+                                    List<String> lore = new ArrayList<>();
+                                    meta.setLore(lore);
+                                    green.setItemMeta(meta);
+                                    return green;
+                                }
+
+                                @Override
+                                public void onClick(Player player) {
+
+                                }
+                            });
+
+                            anvilMenu.addButton(new Button(9*4 + redPointer) {
+                                @Override
+                                public ItemStack getItem() {
+                                    ItemStack red = new ItemStack(Material.REDSTONE);
+                                    ItemMeta meta = red.getItemMeta();
+                                    meta.setDisplayName(" ");
+                                    List<String> lore = new ArrayList<>();
+                                    meta.setLore(lore);
+                                    red.setItemMeta(meta);
+                                    return red;
+                                }
+
+                                @Override
+                                public void onClick(Player player) {
+
+                                }
+                            });
+
+                            // "Retexture" recipe book
+                            anvilMenu.addButton(new Button(4+18) {
+                                @Override
+                                public ItemStack getItem() {
+                                    ItemStack book = recipe.getResult().clone();
+                                    ItemMeta meta = book.getItemMeta();
+                                    meta.setDisplayName("Recipes");
+                                    List<String> lore = new ArrayList<>();
+                                    meta.setLore(lore);
+                                    book.setItemMeta(meta);
+                                    return book;
+                                }
+
+                                @Override
+                                public void onClick(Player player) {
+                                    anvilInventory = player.getOpenInventory().getTopInventory();
+                                    recipesFunction(player);
+                                }
+                            });
+
+                            anvilMenu.selectedSmithingRecipe = recipe;
+
+                            for (Map.Entry<Integer, Button> entry : anvilMenu.getButtons().entrySet()) {
+                                Button button = entry.getValue();
+                                anvilInventory.setItem(button.getSlot(), button.getItem());
+                            }
+
+                            if (player.hasMetadata("NewInihatiaMenu")) {
+                                player.closeInventory();
+                            }
+                            player.setMetadata("NewInihatiaMenu", new FixedMetadataValue(PlugHatia.getPlugin(), getAnvilMenu()));
+                            player.openInventory(anvilInventory);
+                        }
+                    });
+                    slot++;
+                }
+            }
+        }
+
+    }
+
+    private void resetAnvil() {
+        greenPointer = null;
+        redPointer = null;
+        selectedSmithingRecipe = null;
 
         // Weld
         addButton(new Button(8+2) {
@@ -67,7 +541,7 @@ public class AnvilMenu extends Menu {
 
             @Override
             public void onClick(Player player) {
-
+                weld(player);
             }
         });
 
@@ -288,7 +762,6 @@ public class AnvilMenu extends Menu {
         for (int i = 23; i < 27; i++) {
             glassFilling(i);
         }
-
     }
 
     private void glassFilling(int slot) {
@@ -329,339 +802,6 @@ public class AnvilMenu extends Menu {
 
             }
         });
-    }
-
-    private void hit(int value, Player player) {
-        if (greenPointer == null) {
-            return;
-        }
-
-        int oldGreenPointer = greenPointer;
-        greenPointer += value;
-        if (greenPointer > 8) greenPointer = 8;
-        if (greenPointer < 0) greenPointer = 0;
-
-        barGlassFilling(9*3 + oldGreenPointer);
-
-        addButton(new Button(9*3 + greenPointer) {
-            @Override
-            public ItemStack getItem() {
-                ItemStack green = new ItemStack(Material.EMERALD);
-                ItemMeta meta = green.getItemMeta();
-                meta.setDisplayName(" ");
-                List<String> lore = new ArrayList<>();
-                meta.setLore(lore);
-                green.setItemMeta(meta);
-                return green;
-            }
-
-            @Override
-            public void onClick(Player player) {
-
-            }
-        });
-
-        // update last three hits
-        ItemStack finalizeBuffer1 = getButton(3+9).getItem();
-        addButton(new Button(2+9) {
-            @Override
-            public ItemStack getItem() {
-                return finalizeBuffer1;
-            }
-
-            @Override
-            public void onClick(Player player) {
-
-            }
-        });
-        ItemStack finalizeBuffer2 = getButton(4+9).getItem();
-        addButton(new Button(3+9) {
-            @Override
-            public ItemStack getItem() {
-                return finalizeBuffer2;
-            }
-
-            @Override
-            public void onClick(Player player) {
-
-            }
-        });
-        addButton(new Button(4+9) {
-            @Override
-            public ItemStack getItem() {
-                if (value == -1) {
-                    return anvilInventory.getItem(5);
-                }
-                else if (value == -2) {
-                    return anvilInventory.getItem(6);
-                }
-                else if (value == -3) {
-                    return anvilInventory.getItem(5+9);
-                }
-                else if (value == -4) {
-                    return anvilInventory.getItem(6+9);
-                }
-
-                else if (value == 1) {
-                    return anvilInventory.getItem(7);
-                }
-                else if (value == 2) {
-                    return anvilInventory.getItem(8);
-                }
-                else if (value == 3) {
-                    return anvilInventory.getItem(7+9);
-                }
-                else if (value == 4) {
-                    return anvilInventory.getItem(8+9);
-                }
-                return null;
-            }
-
-            @Override
-            public void onClick(Player player) {
-
-            }
-        });
-
-        anvilInventory = player.getOpenInventory().getTopInventory();
-
-        if (checkRecipe()) {
-            anvilInventory.setItem(18+2, null);
-            anvilInventory.setItem(18+3, selectedRecipe.getResult());
-        }
-
-        for (Map.Entry<Integer, Button> entry : getButtons().entrySet()) {
-            Button button = entry.getValue();
-            anvilInventory.setItem(button.getSlot(), button.getItem());
-        }
-
-        if (player.hasMetadata("NewInihatiaMenu")) {
-            player.closeInventory();
-        }
-        player.setMetadata("NewInihatiaMenu", new FixedMetadataValue(PlugHatia.getPlugin(), getAnvilMenu()));
-        player.openInventory(anvilInventory);
-    }
-
-    private boolean checkRecipe() {
-        if (selectedRecipe == null) {
-            return false;
-        }
-
-        boolean[] recipePossibility = checkRecipePossibility(selectedRecipe);
-        if (!recipePossibility[0] || !recipePossibility[1]) {
-            return false;
-        }
-
-        if (!Objects.equals(greenPointer, redPointer)) {
-            return false;
-        }
-
-        int i = 2+9;
-        for (String hit : selectedRecipe.getLastThreeHits()) {
-            if (hit != null) {
-                if (hitLocationMap.get(hit) != i) {
-                    return false;
-                }
-            }
-            i++;
-        }
-        return true;
-    }
-
-    public AnvilMenu getAnvilMenu() {
-        return this;
-    }
-
-    public void recipesFunction(Player player) {};
-
-    protected boolean[] checkRecipePossibility(AnvilRecipe recipe) {
-        Set<ItemStack> ingredients = new HashSet<>();
-        ingredients.add(anvilInventory.getItem(2+18));
-        ingredients.add(anvilInventory.getItem(3+18));
-        boolean hasIngredients = true;
-        boolean properTemps = true;
-        Set<ItemStack> ingredientsCopy = new HashSet<>(ingredients);
-        for (Map.Entry<ItemStack, Double> entry : recipe.getItems().entrySet()) {
-            ItemStack item = entry.getKey();
-            Double temperature = entry.getValue();
-            boolean hasIngredient = false;
-            boolean properTemp = false;
-            for (ItemStack ingredient : ingredientsCopy) {
-                if (ingredient != null) {
-                    if (ingredient.isSimilar(item)) {
-                        if (temperature > 0) {
-                            if (ingredient.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(PlugHatia.getPlugin(), "temperature"))) {
-                                if (ingredient.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(PlugHatia.getPlugin(), "temperature"), PersistentDataType.DOUBLE) < temperature) {
-                                    properTemp = true;
-                                }
-                            }
-                        } else {
-                            properTemp = true;
-                        }
-                        ingredientsCopy.remove(ingredient);
-                        hasIngredient = true;
-                        break;
-                    }
-                }
-            }
-            if (hasIngredient) {
-                if (!properTemp) {
-                    properTemps = false;
-                }
-            } else {
-                hasIngredients = false;
-                break;
-            }
-        }
-        return new boolean[] {hasIngredients, properTemps};
-    }
-
-    protected abstract class RecipesMenu extends Menu {
-
-        private AnvilMenu anvilMenu;
-        public Set<AnvilRecipe> recipes;
-
-        public RecipesMenu(AnvilMenu anvilMenu, Set<AnvilRecipe> recipes) {
-            super(AnvilMenu.this);
-            this.anvilMenu = anvilMenu;
-            this.recipes = recipes;
-            init();
-        }
-
-        protected void init() {
-            setSize(9*3);
-            setTitle("Recipes");
-            addButton(new Button(9*3 - 1) {
-                @Override
-                public ItemStack getItem() {
-                    ItemStack door = new ItemStack(Material.OAK_DOOR);
-                    ItemMeta meta = door.getItemMeta();
-                    meta.setDisplayName("Back to Anvil");
-                    List<String> lore = new ArrayList<>();
-                    meta.setLore(lore);
-                    door.setItemMeta(meta);
-                    return door;
-                }
-
-                @Override
-                public void onClick(Player player) {
-                    for (Map.Entry<Integer, Button> entry : anvilMenu.getButtons().entrySet()) {
-                        Button button = entry.getValue();
-                        anvilInventory.setItem(button.getSlot(), button.getItem());
-                    }
-
-                    if (player.hasMetadata("NewInihatiaMenu")) {
-                        player.closeInventory();
-                    }
-                    player.setMetadata("NewInihatiaMenu", new FixedMetadataValue(PlugHatia.getPlugin(), getAnvilMenu()));
-                    player.openInventory(anvilInventory);
-                }
-            });
-
-            Set<ItemStack> ingredients = new HashSet<>();
-            ingredients.add(anvilInventory.getItem(2+18));
-            ingredients.add(anvilInventory.getItem(3+18));
-            int slot = 0;
-            for (AnvilRecipe recipe : recipes) {
-                boolean[] recipePossibilityBools = checkRecipePossibility(recipe);
-                boolean hasIngredients = recipePossibilityBools[0];
-                boolean properTemps = recipePossibilityBools[1];
-
-                if (hasIngredients) {
-                    boolean finalProperTemps = properTemps;
-                    addButton(new Button(slot) {
-                        @Override
-                        public ItemStack getItem() {
-                            ItemStack item = recipe.getResult();
-                            ItemMeta meta = item.getItemMeta();
-                            List<String> lore = new ArrayList<>();
-                            if (!finalProperTemps) {
-                                lore.add(ChatColor.RED + "Ingredients need to be heated!");
-                            }
-                            meta.setLore(lore);
-                            item.setItemMeta(meta);
-                            return item;
-                        }
-
-                        @Override
-                        public void onClick(Player player) {
-                            // Adding buttons will overwrite old ones
-                            int hitSlot = 2;
-                            for (String hitType : recipe.getLastThreeHits()) {
-                                if (hitType != null) {
-                                    anvilMenu.addButton(new Button(hitSlot) {
-                                        @Override
-                                        public ItemStack getItem() {
-                                            return anvilInventory.getItem(hitLocationMap.get(hitType));
-                                        }
-
-                                        @Override
-                                        public void onClick(Player player) {
-
-                                        }
-                                    });
-                                }
-                                hitSlot++;
-                            }
-
-                            greenPointer = recipe.getGreenPointerStart();
-                            redPointer = recipe.getRedPointer();
-
-                            anvilMenu.addButton(new Button(9*3 + greenPointer) {
-                                @Override
-                                public ItemStack getItem() {
-                                    ItemStack green = new ItemStack(Material.EMERALD);
-                                    ItemMeta meta = green.getItemMeta();
-                                    meta.setDisplayName(" ");
-                                    List<String> lore = new ArrayList<>();
-                                    meta.setLore(lore);
-                                    green.setItemMeta(meta);
-                                    return green;
-                                }
-
-                                @Override
-                                public void onClick(Player player) {
-
-                                }
-                            });
-
-                            anvilMenu.addButton(new Button(9*4 + redPointer) {
-                                @Override
-                                public ItemStack getItem() {
-                                    ItemStack red = new ItemStack(Material.REDSTONE);
-                                    ItemMeta meta = red.getItemMeta();
-                                    meta.setDisplayName(" ");
-                                    List<String> lore = new ArrayList<>();
-                                    meta.setLore(lore);
-                                    red.setItemMeta(meta);
-                                    return red;
-                                }
-
-                                @Override
-                                public void onClick(Player player) {
-
-                                }
-                            });
-
-                            anvilMenu.selectedRecipe = recipe;
-
-                            for (Map.Entry<Integer, Button> entry : anvilMenu.getButtons().entrySet()) {
-                                Button button = entry.getValue();
-                                anvilInventory.setItem(button.getSlot(), button.getItem());
-                            }
-
-                            if (player.hasMetadata("NewInihatiaMenu")) {
-                                player.closeInventory();
-                            }
-                            player.setMetadata("NewInihatiaMenu", new FixedMetadataValue(PlugHatia.getPlugin(), getAnvilMenu()));
-                            player.openInventory(anvilInventory);
-                        }
-                    });
-                    slot++;
-                }
-            }
-        }
-
     }
 
 }
