@@ -45,10 +45,6 @@ public class CrucibleOfSteel extends Heatable {
         ItemStack hotItemInstance = create(1, maxHeatedTemp, 0);
         ItemStack coldItemInstance = create(1, 0, 0);
 
-        System.out.println("Crucible of Steel recipes initialized.");
-        System.out.println("Hot: " + hotItemInstance);
-        System.out.println("Cold: " + coldItemInstance);
-
         Bukkit.addRecipe(new BlastingRecipe(NamespacedKey.minecraft("crucible_of_steel_smelted"), hotItemInstance, new RecipeChoice.ExactChoice(coldItemInstance), 1.0f, 15 * 20));
 
         ShapelessRecipe recipe = new ShapelessRecipe(NamespacedKey.minecraft("crucible_of_steel"), coldItemInstance);

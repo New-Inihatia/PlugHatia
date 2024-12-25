@@ -2,16 +2,10 @@ package newinihatia.plughatia.events;
 
 import newinihatia.plughatia.PlugHatia;
 import newinihatia.plughatia.items.Heatable;
-import newinihatia.plughatia.items.ItemManager;
-import newinihatia.plughatia.items.steel.PigIron;
-import newinihatia.plughatia.items.steel.SteelIngot;
-import newinihatia.plughatia.objects.PlayerObj;
-import newinihatia.plughatia.utils.PlayerStorageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -20,10 +14,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
-import org.checkerframework.checker.units.qual.N;
-
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class ItemTemperatureControl implements Listener {

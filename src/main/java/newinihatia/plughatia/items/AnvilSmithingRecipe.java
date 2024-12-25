@@ -12,6 +12,7 @@ public class AnvilSmithingRecipe {
     private int greenPointerStart;
     private int redPointer;
     private int experience;
+    private int mininmumHammerStrength = 1;
     private String[] lastThreeHits = {null, null, null}; // ordered from first to last
     /*
     * Hits are denoted by capitalized initials, e.g.: Hit, Heavy = HH
@@ -27,6 +28,17 @@ public class AnvilSmithingRecipe {
         this.experience = experience;
     }
 
+    public AnvilSmithingRecipe(ItemStack result, ItemStack[] ingredients, int greenPointerStart, int redPointer, int experience, int mininmumHammerStrength) {
+        this.result = result;
+        for (ItemStack ingredient : ingredients) {
+            this.ingredients.add(ingredient);
+        }
+        this.greenPointerStart = greenPointerStart;
+        this.redPointer = redPointer;
+        this.experience = experience;
+        this.mininmumHammerStrength = mininmumHammerStrength;
+    }
+
     public AnvilSmithingRecipe(ItemStack result, ItemStack[] ingredients, String[] lastThreeHits, int greenPointerStart, int redPointer, int experience) {
         this.result = result;
         for (ItemStack ingredient : ingredients) {
@@ -36,6 +48,22 @@ public class AnvilSmithingRecipe {
         this.greenPointerStart = greenPointerStart;
         this.redPointer = redPointer;
         this.experience = experience;
+    }
+
+    public AnvilSmithingRecipe(ItemStack result, ItemStack[] ingredients, String[] lastThreeHits, int greenPointerStart, int redPointer, int experience, int mininmumHammerStrength) {
+        this.result = result;
+        for (ItemStack ingredient : ingredients) {
+            this.ingredients.add(ingredient);
+        }
+        this.lastThreeHits = lastThreeHits;
+        this.greenPointerStart = greenPointerStart;
+        this.redPointer = redPointer;
+        this.experience = experience;
+        this.mininmumHammerStrength = mininmumHammerStrength;
+    }
+
+    public int getMinimumHammerStrength() {
+        return mininmumHammerStrength;
     }
 
     public List<ItemStack> getIngredients() {

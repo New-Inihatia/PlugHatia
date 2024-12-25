@@ -15,6 +15,7 @@ import java.util.Map;
 
 import static newinihatia.plughatia.items.Flux.initFlux;
 import static newinihatia.plughatia.items.IronHammer.initIronHammer;
+import static newinihatia.plughatia.items.anvils.IronAnvil.initIronAnvil;
 import static newinihatia.plughatia.items.elvenSteel.ElvenSteelArmor.elvenSteelArmorInit;
 import static newinihatia.plughatia.items.elvenSteel.ElvenSteelIngot.createElvenSteelIngot;
 import static newinihatia.plughatia.items.elvenSteel.ElvenSteelTools.elvenSteelToolsInit;
@@ -43,6 +44,9 @@ public class ItemManager {
     public static ItemStack flux;
 
     public static ItemStack pigIron;
+
+    /* Anvils */
+    public static ItemStack ironAnvil;
 
     /* Base materials */
     public static ItemStack steelIngot;
@@ -109,6 +113,8 @@ public class ItemManager {
         flux = initFlux();
 
         pigIron = pigIronHeatable.init();
+
+        ironAnvil = initIronAnvil();
 
         steelIngot = steelIngotHeatable.init();
         doubleSteelIngot = doubleSteelIngotHeatable.init();

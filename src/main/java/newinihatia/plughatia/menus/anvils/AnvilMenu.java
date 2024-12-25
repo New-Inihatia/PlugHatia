@@ -2,20 +2,27 @@ package newinihatia.plughatia.menus.anvils;
 
 import com.google.common.collect.Multimap;
 import newinihatia.plughatia.PlugHatia;
+import newinihatia.plughatia.events.EventManager;
 import newinihatia.plughatia.events.ItemTemperatureControl;
+import newinihatia.plughatia.items.AnvilRecipes;
 import newinihatia.plughatia.items.AnvilSmithingRecipe;
 import newinihatia.plughatia.items.AnvilWeldingRecipe;
 import newinihatia.plughatia.items.ItemManager;
 import newinihatia.plughatia.menus.Button;
 import newinihatia.plughatia.menus.Menu;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.persistence.PersistentDataType;
@@ -30,6 +37,27 @@ public class AnvilMenu extends Menu {
     private Integer redPointer = null;
     private AnvilSmithingRecipe selectedSmithingRecipe = null;
     private Set<AnvilWeldingRecipe> anvilWeldingRecipes;
+    private final int hammerSlot = 5+18;
+    private final int barSize = 24;
+
+    private BossBar createGreenBar(Integer greenPointer) {
+        if (greenPointer == null) {
+            return null;
+        }
+        BossBar bar = Bukkit.createBossBar("Green", BarColor.GREEN, BarStyle.SOLID);
+        bar.setProgress((double) greenPointer / barSize);
+        bar.setColor(BarColor.GREEN);
+        return bar;
+    }
+    private BossBar createRedBar(Integer redPointer) {
+        if (redPointer == null) {
+            return null;
+        }
+        BossBar bar = Bukkit.createBossBar("Red", BarColor.RED, BarStyle.SOLID);
+        bar.setProgress((double) redPointer / barSize);
+        bar.setColor(BarColor.RED);
+        return bar;
+    }
 
     private static final Map<String, Integer> hitLocationMap = Map.of(
             "HL", 5,
@@ -44,7 +72,7 @@ public class AnvilMenu extends Menu {
 
 
     public AnvilMenu(Set<AnvilWeldingRecipe> anvilWeldingRecipes) {
-        this.setSize(9*5);
+        this.setSize(9*3);
         this.setMaxStackSize(1);
 
         ironHammerClone = ItemManager.ironHammer.clone();
@@ -63,31 +91,22 @@ public class AnvilMenu extends Menu {
         if (greenPointer == null) {
             return;
         }
+        if (selectedSmithingRecipe == null) {
+            return;
+        }
 
-        int oldGreenPointer = greenPointer;
+        anvilInventory = player.getOpenInventory().getTopInventory();
+        ItemStack hammer = anvilInventory.getItem(hammerSlot);
+
+        if (AnvilRecipes.getHammerStrength(hammer) < selectedSmithingRecipe.getMinimumHammerStrength()) {
+            return;
+        }
+
         greenPointer += value;
-        if (greenPointer > 8) greenPointer = 8;
+        if (greenPointer > barSize) greenPointer = barSize;
         if (greenPointer < 0) greenPointer = 0;
 
-        barGlassFilling(9*3 + oldGreenPointer);
-
-        addButton(new Button(9*3 + greenPointer) {
-            @Override
-            public ItemStack getItem() {
-                ItemStack green = new ItemStack(Material.EMERALD);
-                ItemMeta meta = green.getItemMeta();
-                meta.setDisplayName(" ");
-                List<String> lore = new ArrayList<>();
-                meta.setLore(lore);
-                green.setItemMeta(meta);
-                return green;
-            }
-
-            @Override
-            public void onClick(Player player) {
-
-            }
-        });
+        EventManager.anvilEvents.updatePlayerBars(player, new BossBar[] {createGreenBar(greenPointer), createRedBar(redPointer)});
 
         // update last three hits
         ItemStack finalizeBuffer1 = getButton(3+9).getItem();
@@ -151,8 +170,6 @@ public class AnvilMenu extends Menu {
             }
         });
 
-        anvilInventory = player.getOpenInventory().getTopInventory();
-
         anvilInventory.setItem(18+2, ItemTemperatureControl.adjustTemperature(anvilInventory.getItem(18+2)));
         anvilInventory.setItem(18+3, ItemTemperatureControl.adjustTemperature(anvilInventory.getItem(18+3)));
         if (checkSmithingRecipe()) {
@@ -179,14 +196,16 @@ public class AnvilMenu extends Menu {
                 }
             });
 
-            // get rid of pointers
-            barGlassFilling(9*4 + greenPointer);
-            barGlassFilling(9*4 + redPointer);
-
             player.giveExp(selectedSmithingRecipe.getExperience());
 
             resetAnvil();
         }
+
+        // Remove hammer durability
+        Damageable hammerMeta = (Damageable) hammer.getItemMeta();
+        hammerMeta.setDamage(hammerMeta.getDamage() + Math.abs(value));
+        hammer.setItemMeta(hammerMeta);
+        anvilInventory.setItem(hammerSlot, hammer);
 
         for (Map.Entry<Integer, Button> entry : getButtons().entrySet()) {
             Button button = entry.getValue();
@@ -198,6 +217,8 @@ public class AnvilMenu extends Menu {
         }
         player.setMetadata("NewInihatiaMenu", new FixedMetadataValue(PlugHatia.getPlugin(), getAnvilMenu()));
         player.openInventory(anvilInventory);
+
+        EventManager.anvilEvents.updatePlayerBars(player, getBars());
     }
 
     private boolean checkSmithingRecipe() {
@@ -206,7 +227,7 @@ public class AnvilMenu extends Menu {
         }
 
         boolean[] recipePossibility = checkSmithingRecipePossibility(selectedSmithingRecipe);
-        if (!recipePossibility[0] || !recipePossibility[1]) {
+        if (!recipePossibility[0] || !recipePossibility[1] || !recipePossibility[2]) {
             return false;
         }
 
@@ -236,6 +257,11 @@ public class AnvilMenu extends Menu {
             anvilInventory.setItem(0, null);
             anvilInventory.setItem(1, null);
             anvilInventory.setItem(9, weldingRecipe.getResult());
+            ItemStack hammer = anvilInventory.getItem(hammerSlot);
+            Damageable hammerMeta = (Damageable) hammer.getItemMeta();
+            hammerMeta.setDamage(hammerMeta.getDamage() - Math.abs(5));
+            hammer.setItemMeta(hammerMeta);
+            anvilInventory.setItem(hammerSlot, hammer);
             player.giveExp(weldingRecipe.getExperience());
         }
     }
@@ -251,6 +277,10 @@ public class AnvilMenu extends Menu {
         if (!anvilInventory.getItem(9).isSimilar(ItemManager.flux)) {
             return null;
         }
+        ItemStack hammer = anvilInventory.getItem(hammerSlot);
+        if (hammer == null) {
+            return null;
+        }
 
         Set<ItemStack> ingredients = new HashSet<>();
         ingredients.add(anvilInventory.getItem(0));
@@ -258,6 +288,7 @@ public class AnvilMenu extends Menu {
         for (AnvilWeldingRecipe weldingRecipe : anvilWeldingRecipes) {
             boolean hasIngredients = true;
             boolean properTemps = true;
+            boolean properHammer = AnvilRecipes.getHammerStrength(hammer) >= weldingRecipe.getMinimumHammerStrength();
             Set<ItemStack> ingredientsCopy = new HashSet<>(ingredients);
             for (ItemStack item : weldingRecipe.getIngredients()) {
                 boolean hasIngredient = false;
@@ -291,7 +322,7 @@ public class AnvilMenu extends Menu {
                     hasIngredients = false;
                 }
             }
-            if (hasIngredients && properTemps) {
+            if (hasIngredients && properTemps && properHammer) {
                 return weldingRecipe;
             }
         }
@@ -310,6 +341,7 @@ public class AnvilMenu extends Menu {
         ingredients.add(anvilInventory.getItem(3+18));
         boolean hasIngredients = true;
         boolean properTemps = true;
+        boolean properHammer = AnvilRecipes.getHammerStrength(anvilInventory.getItem(hammerSlot)) >= recipe.getMinimumHammerStrength();
         Set<ItemStack> ingredientsCopy = new HashSet<>(ingredients);
         for (ItemStack item : recipe.getIngredients()) {
             boolean hasIngredient = false;
@@ -344,7 +376,7 @@ public class AnvilMenu extends Menu {
                 break;
             }
         }
-        return new boolean[] {hasIngredients, properTemps};
+        return new boolean[] {hasIngredients, properTemps, properHammer};
     }
 
     protected abstract class SmithingRecipesMenu extends Menu {
@@ -394,17 +426,21 @@ public class AnvilMenu extends Menu {
                 boolean[] recipePossibilityBools = checkSmithingRecipePossibility(recipe);
                 boolean hasIngredients = recipePossibilityBools[0];
                 boolean properTemps = recipePossibilityBools[1];
+                boolean properHammer = recipePossibilityBools[2];
 
                 if (hasIngredients) {
                     boolean finalProperTemps = properTemps;
                     addButton(new Button(slot) {
                         @Override
                         public ItemStack getItem() {
-                            ItemStack item = recipe.getResult();
+                            ItemStack item = recipe.getResult().clone();
                             ItemMeta meta = item.getItemMeta();
                             List<String> lore = new ArrayList<>();
                             if (!finalProperTemps) {
                                 lore.add(ChatColor.RED + "Ingredients need to be heated!");
+                            }
+                            if (!properHammer) {
+                                lore.add(ChatColor.RED + "Hammer is too weak!");
                             }
                             meta.setLore(lore);
                             item.setItemMeta(meta);
@@ -424,7 +460,9 @@ public class AnvilMenu extends Menu {
                                         public ItemStack getItem() {
                                             ItemStack wantedHit = anvilInventory.getItem(hitLocationMap.get(hitType)).clone();
 
-                                            wantedHit.getItemMeta().setDisplayName(orderStrings[finalHitSlot - 2] + wantedHit.getItemMeta().getDisplayName());
+                                            ItemMeta meta = wantedHit.getItemMeta();
+                                            meta.setDisplayName(orderStrings[finalHitSlot - 2] + wantedHit.getItemMeta().getDisplayName());
+                                            wantedHit.setItemMeta(meta);
                                             return anvilInventory.getItem(hitLocationMap.get(hitType));
                                         }
 
@@ -439,46 +477,9 @@ public class AnvilMenu extends Menu {
 
                             greenPointer = recipe.getGreenPointerStart();
                             redPointer = recipe.getRedPointer();
+                            BossBar[] bossBars = {createGreenBar(greenPointer), createRedBar(redPointer)};
+                            EventManager.anvilEvents.updatePlayerBars(player, bossBars);
 
-                            for (int i = 9*3; i < anvilInventory.getSize(); i++) {
-                                anvilMenu.barGlassFilling(i);
-                            }
-
-                            anvilMenu.addButton(new Button(9*3 + greenPointer) {
-                                @Override
-                                public ItemStack getItem() {
-                                    ItemStack green = new ItemStack(Material.EMERALD);
-                                    ItemMeta meta = green.getItemMeta();
-                                    meta.setDisplayName(" ");
-                                    List<String> lore = new ArrayList<>();
-                                    meta.setLore(lore);
-                                    green.setItemMeta(meta);
-                                    return green;
-                                }
-
-                                @Override
-                                public void onClick(Player player) {
-
-                                }
-                            });
-
-                            anvilMenu.addButton(new Button(9*4 + redPointer) {
-                                @Override
-                                public ItemStack getItem() {
-                                    ItemStack red = new ItemStack(Material.REDSTONE);
-                                    ItemMeta meta = red.getItemMeta();
-                                    meta.setDisplayName(" ");
-                                    List<String> lore = new ArrayList<>();
-                                    meta.setLore(lore);
-                                    red.setItemMeta(meta);
-                                    return red;
-                                }
-
-                                @Override
-                                public void onClick(Player player) {
-
-                                }
-                            });
 
                             // "Retexture" recipe book
                             anvilMenu.addButton(new Button(4+18) {
@@ -706,17 +707,6 @@ public class AnvilMenu extends Menu {
         });
 
 
-        /* Bars */
-        // Green Bar
-        for (int i = 9*3; i < 9*4; i++) {
-            barGlassFilling(i);
-        }
-
-        // Red Bar
-        for (int i = 9*4; i < 9*5; i++) {
-            barGlassFilling(i);
-        }
-
         // Filling
         for (int i = 2; i < 5; i++) {
             addButton(new Button(i) {
@@ -759,7 +749,7 @@ public class AnvilMenu extends Menu {
         for (int i = 18; i < 2+18; i++) {
             glassFilling(i);
         }
-        for (int i = 23; i < 27; i++) {
+        for (int i = 24; i < 27; i++) {
             glassFilling(i);
         }
     }
@@ -802,6 +792,29 @@ public class AnvilMenu extends Menu {
 
             }
         });
+    }
+
+    @Override
+    public void displayTo(Player player) {
+        Inventory inventory = Bukkit.createInventory(player, size, title);
+        inventory.setMaxStackSize(maxStackSize);
+        for (Map.Entry<Integer, Button> entry : buttons.entrySet()) {
+            Button button = entry.getValue();
+            inventory.setItem(button.getSlot(), button.getItem());
+        }
+
+        if (player.hasMetadata("NewInihatiaMenu")) {
+            player.closeInventory();
+        }
+        player.setMetadata("NewInihatiaMenu", new FixedMetadataValue(PlugHatia.getPlugin(), this));
+
+        player.openInventory(inventory);
+
+        EventManager.anvilEvents.updatePlayerBars(player, new BossBar[] {createGreenBar(greenPointer), createRedBar(redPointer)});
+    }
+
+    public BossBar[] getBars() {
+        return new BossBar[] {createGreenBar(greenPointer), createRedBar(redPointer)};
     }
 
 }

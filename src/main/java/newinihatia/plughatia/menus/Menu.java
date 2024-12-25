@@ -15,11 +15,11 @@ import java.util.Map;
 
 public class Menu {
 
-    private final Map<Integer, Button> buttons = new HashMap<>();
-    private int size = 9*3;
-    private String title = "Custom Menu";
+    protected final Map<Integer, Button> buttons = new HashMap<>();
+    protected int size = 9*3;
+    protected String title = "Custom Menu";
     private Menu parent;
-    private int maxStackSize = 64;
+    protected int maxStackSize = 64;
 
     public Menu() {
         this(null);
@@ -53,8 +53,16 @@ public class Menu {
         this.size = size;
     }
 
+    protected final int getSize() {
+        return size;
+    }
+
     protected final void setTitle(String title) {
         this.title = title;
+    }
+
+    public final String getTitle() {
+        return title;
     }
 
     protected final void setMaxStackSize(int maxStackSize) {
@@ -62,7 +70,7 @@ public class Menu {
     }
 
 
-    public final void displayTo(Player player) {
+    public void displayTo(Player player) {
         Inventory inventory = Bukkit.createInventory(player, size, title);
         inventory.setMaxStackSize(maxStackSize);
         for (Map.Entry<Integer, Button> entry : buttons.entrySet()) {

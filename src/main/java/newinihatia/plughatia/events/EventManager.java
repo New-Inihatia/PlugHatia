@@ -17,6 +17,8 @@ import static org.bukkit.Bukkit.getServer;
 
 public class EventManager {
 
+    public static AnvilEvents anvilEvents = new AnvilEvents();
+
     public static void init() {
 
         int maxPlayerCount = Bukkit.getServer().getMaxPlayers();
@@ -57,7 +59,9 @@ public class EventManager {
 
         getServer().getPluginManager().registerEvents(new MenuListener(), PlugHatia.getPlugin());
 
-        getServer().getPluginManager().registerEvents(new AnvilUse(), PlugHatia.getPlugin());
+//        getServer().getPluginManager().registerEvents(new AnvilUse(), PlugHatia.getPlugin());
+
+        getServer().getPluginManager().registerEvents(anvilEvents, PlugHatia.getPlugin());
 
         getServer().getPluginManager().registerEvents(new HarvestCrucibleOfSteel(), PlugHatia.getPlugin());
 
