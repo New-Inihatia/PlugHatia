@@ -178,32 +178,33 @@ public class ItemManager {
             return false;
         }
 
-        if (item1.getItemMeta().hasCustomModelData() == item2.getItemMeta().hasCustomModelData()) {
-            if (item1.getItemMeta().hasCustomModelData()) {
-                if (item1.getItemMeta().getCustomModelData() != item2.getItemMeta().getCustomModelData()) {
-                    return false;
+        if (item1.hasItemMeta() && item2.hasItemMeta()) {
+            if (item1.getItemMeta().hasCustomModelData() == item2.getItemMeta().hasCustomModelData()) {
+                if (item1.getItemMeta().hasCustomModelData()) {
+                    if (item1.getItemMeta().getCustomModelData() != item2.getItemMeta().getCustomModelData()) {
+                        return false;
+                    }
                 }
+            } else {
+                return false;
             }
-        }
-        else {
-            return false;
         }
         return true;
     }
 
     public static boolean heatableItemsAreEquivalent(ItemStack item1, ItemStack item2) {
-        if (item1.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(PlugHatia.getPlugin(), "heatable_name"), PersistentDataType.STRING)
-                &&
-                item2.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(PlugHatia.getPlugin(), "heatable_name"), PersistentDataType.STRING)) {
-            if (item1.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(PlugHatia.getPlugin(), "heatable_name"), PersistentDataType.STRING)
-                    ==
-                    item2.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(PlugHatia.getPlugin(), "heatable_name"), PersistentDataType.STRING)) {
-                return true;
+        if (item1.hasItemMeta() && item2.hasItemMeta()) {
+            if (item1.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(PlugHatia.getPlugin(), "heatable_name"), PersistentDataType.STRING)
+                    &&
+                    item2.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(PlugHatia.getPlugin(), "heatable_name"), PersistentDataType.STRING)) {
+                if (item1.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(PlugHatia.getPlugin(), "heatable_name"), PersistentDataType.STRING)
+                        ==
+                        item2.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(PlugHatia.getPlugin(), "heatable_name"), PersistentDataType.STRING)) {
+                    return true;
+                }
             }
-        } else {
-            return areEquivalent(item1, item2);
         }
-        return true;
+        return areEquivalent(item1, item2);
     }
 
 }

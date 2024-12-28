@@ -25,8 +25,6 @@ public class ItemTemperatureControl implements Listener {
 
         ItemStack item = e.getCurrentItem();
 
-        System.out.println(item);
-
         if (item == null) {
             return;
         }
@@ -41,10 +39,8 @@ public class ItemTemperatureControl implements Listener {
                     item = e.getCursor();
                     meta = item.getItemMeta();
                     if (meta.getPersistentDataContainer().has(new NamespacedKey(PlugHatia.getPlugin(), "temperature_since"), PersistentDataType.LONG)) {
-                        System.out.println("getSlot item: " + item);
                         meta.getPersistentDataContainer().set(new NamespacedKey(PlugHatia.getPlugin(), "temperature"), PersistentDataType.DOUBLE, 0.0);
                         meta.getPersistentDataContainer().set(new NamespacedKey(PlugHatia.getPlugin(), "temperature_since"), PersistentDataType.LONG, (long) 0);
-                        System.out.println("reset temp stuff for heating");
                         item.setItemMeta(meta);
                         e.getCursor().setItemMeta(meta);
                         return;
@@ -72,7 +68,6 @@ public class ItemTemperatureControl implements Listener {
                 if (e.getSlotType() == InventoryType.SlotType.RESULT) {
                     if (meta.getPersistentDataContainer().has(new NamespacedKey(PlugHatia.getPlugin(), "temperature_since"), PersistentDataType.LONG)) {
                         meta.getPersistentDataContainer().set(new NamespacedKey(PlugHatia.getPlugin(), "temperature_since"), PersistentDataType.LONG, gameTime);
-                        System.out.println("fixing temp since: " + gameTime);
                     }
                 }
             }

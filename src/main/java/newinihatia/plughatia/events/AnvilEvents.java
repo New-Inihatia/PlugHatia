@@ -5,7 +5,11 @@ import newinihatia.plughatia.items.ItemManager;
 import newinihatia.plughatia.menus.Menu;
 import newinihatia.plughatia.menus.anvils.AnvilMenu;
 import newinihatia.plughatia.menus.anvils.IronAnvilMenu;
+import newinihatia.plughatia.utils.AnvilStorageUtil;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
@@ -20,31 +24,60 @@ import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.MetadataValue;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.io.IOException;
+import java.util.*;
 
 public class AnvilEvents implements Listener {
 
     private final Map<UUID, BossBar[]> anvilBars = new HashMap<>(); // <playerUUID, [greenBar, redBar]>
     private final Map<UUID, Block> anvilLastClicked = new HashMap<>(); // <playerUUID, menu>
+    public Map<Block, AnvilMenu> anvils = new HashMap<>();
+
+    public final void initAnvilEvents() {
+        Map<int[], AnvilMenu> loadedAnvils = new HashMap<>();
+        try {
+            loadedAnvils = AnvilStorageUtil.loadAnvils();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        for (Map.Entry<int[], AnvilMenu> entry : loadedAnvils.entrySet()) {
+            World world = Bukkit.getWorlds().get(entry.getKey()[3]);
+            Block anvil = world.getBlockAt(entry.getKey()[0], entry.getKey()[1], entry.getKey()[2]);
+
+            AnvilMenu anvilMenu = entry.getValue();
+
+            anvil.setMetadata("anvil_menu", new FixedMetadataValue(PlugHatia.getPlugin(), anvilMenu));
+
+            anvils.put(anvil, anvilMenu);
+        }
+    }
+
+    public final void saveAnvils() {
+        try {
+            AnvilStorageUtil.saveAnvils(anvils);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     @EventHandler
     public void onAnvilPlace(BlockPlaceEvent event) {
         if (event.getBlockPlaced().getType() != Material.ANVIL) {
             return;
         }
+        AnvilMenu anvilMenu;
         if (event.getItemInHand().isSimilar(ItemManager.ironAnvil)) {
-            event.getBlockPlaced().setMetadata("anvil_type", new FixedMetadataValue(PlugHatia.getPlugin(), "iron"));
+            anvilMenu = new IronAnvilMenu();
+            event.getBlockPlaced().setMetadata("anvil_menu", new FixedMetadataValue(PlugHatia.getPlugin(), anvilMenu));
         } else {
             return;
         }
-        event.getBlockPlaced().setMetadata("anvil_menu", new FixedMetadataValue(PlugHatia.getPlugin(), null));
-        event.getBlockPlaced().setMetadata("anvil_inventory", new FixedMetadataValue(PlugHatia.getPlugin(), null));
+        anvils.put(event.getBlockPlaced(), anvilMenu);
     }
 
     @EventHandler
@@ -58,33 +91,20 @@ public class AnvilEvents implements Listener {
         if (block.getType() != Material.ANVIL) {
             return;
         }
-        if (!block.hasMetadata("anvil_type")) {
+        if (!block.hasMetadata("anvil_menu")) {
+            System.out.println("No anvil_menu metadata?");
             return;
         }
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
             return;
         }
 
-        List<MetadataValue> anvilInventoryList = block.getMetadata("anvil_inventory");
-        Inventory lastInventoryValue = (Inventory) anvilInventoryList.get(0).value();
 
-        List<MetadataValue> anvilMenuList = block.getMetadata("anvil_menu");
-        AnvilMenu lastMenuValue = (AnvilMenu) anvilMenuList.get(0).value();
+        AnvilMenu anvilMenu = (AnvilMenu) block.getMetadata("anvil_menu").get(0).value();
 
         Player player = event.getPlayer();
 
-        if (lastInventoryValue == null) {
-            if (block.getMetadata("anvil_type").get(0).value().toString() == "iron") {
-                new IronAnvilMenu().displayTo(player);
-            }
-        } else {
-            player.openInventory(lastInventoryValue);
-            if (player.hasMetadata("NewInihatiaMenu")) {
-                player.removeMetadata("NewInihatiaMenu", PlugHatia.getPlugin());
-            }
-            player.setMetadata("NewInihatiaMenu", new FixedMetadataValue(PlugHatia.getPlugin(), lastMenuValue));
-            updatePlayerBars(player, lastMenuValue.getBars());
-        }
+        anvilMenu.displayTo(player);
 
         if (player.hasMetadata("NewInihatiaAnvil")) {
             player.removeMetadata("NewInihatiaAnvil", PlugHatia.getPlugin());
@@ -137,56 +157,47 @@ public class AnvilEvents implements Listener {
         if (block.getType() != Material.ANVIL) {
             return;
         }
-        if (!block.hasMetadata("anvil_type")) {
+        if (!block.hasMetadata("anvil_menu")) {
             return;
         }
         event.setDropItems(false);
         player.getInventory().addItem(ItemManager.ironAnvil);
-        Inventory anvilInventory = (Inventory) block.getMetadata("anvil_inventory").get(0).value();
-        Menu anvilMenu = (Menu) block.getMetadata("anvil_menu").get(0).value();
-        if (anvilInventory != null) {
-            for (int i = 0; i < anvilInventory.getSize(); i++) {
-                if (anvilInventory.getItem(i) != null) {
-                    if (!anvilMenu.getButtons().containsKey(i)) {
-                        player.getInventory().addItem(anvilInventory.getItem(i));
-                    }
-                }
+        AnvilMenu anvilMenu = (AnvilMenu) block.getMetadata("anvil_menu").get(0).value();
+
+        anvils.remove(block);
+
+        World world = block.getWorld();
+        Location location = block.getLocation();
+        for (Map.Entry<Integer, ItemStack> entry : anvilMenu.getItems().entrySet()) {
+            ItemStack item = entry.getValue();
+            if (item != null) {
+                world.dropItemNaturally(location, item);
             }
         }
     }
 
     private void playerCloseAnvil(Player player) {
         if (!player.hasMetadata("NewInihatiaMenu")) {
-            System.out.println("no menu metadata");
             return;
         }
-        Menu menu = (Menu) player.getMetadata("NewInihatiaMenu").get(0).value();
-        if (menu == null) {
-            System.out.println("menu is null");
+        if (player.getMetadata("NewInihatiaMenu").get(0).value() == null) {
             return;
         }
-
         if (!player.hasMetadata("NewInihatiaAnvil")) {
-            System.out.println("no anvil metadata");
             return;
         }
 
-        System.out.println("its workinininginigning");
+        AnvilMenu anvilMenu = (AnvilMenu) player.getMetadata("NewInihatiaMenu").get(0).value();
 
         Block block = (Block) player.getMetadata("NewInihatiaAnvil").get(0).value();
 
-        if (block.hasMetadata("anvil_inventory")) {
-            block.removeMetadata("anvil_inventory", PlugHatia.getPlugin());
-        }
         if (block.hasMetadata("anvil_menu")) {
             block.removeMetadata("anvil_menu", PlugHatia.getPlugin());
         }
-        block.setMetadata("anvil_inventory", new FixedMetadataValue(PlugHatia.getPlugin(), player.getOpenInventory().getTopInventory()));
-        block.setMetadata("anvil_menu", new FixedMetadataValue(PlugHatia.getPlugin(), menu));
+        block.setMetadata("anvil_menu", new FixedMetadataValue(PlugHatia.getPlugin(), anvilMenu));
+        anvils.put(block, anvilMenu);
 
         player.removeMetadata("NewInihatiaAnvil", PlugHatia.getPlugin());
-
-        System.out.println(anvilBars.get(player.getUniqueId()));
 
         removePlayerBars(player);
     }

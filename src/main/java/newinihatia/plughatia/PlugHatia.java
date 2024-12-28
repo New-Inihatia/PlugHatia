@@ -1,8 +1,10 @@
 package newinihatia.plughatia;
 
+import net.md_5.bungee.api.chat.hover.content.Item;
 import newinihatia.plughatia.commands.*;
 import newinihatia.plughatia.events.*;
 import newinihatia.plughatia.items.ItemManager;
+import newinihatia.plughatia.utils.AnvilStorageUtil;
 import newinihatia.plughatia.utils.PlayerStorageUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Server;
@@ -36,6 +38,8 @@ public final class PlugHatia extends JavaPlugin {
             e.printStackTrace();
         }
 
+        EventManager.anvilEvents.initAnvilEvents();
+
         getServer().getConsoleSender().sendMessage(ChatColor.GREEN + "PlugHatia has started!");
 
     }
@@ -43,7 +47,7 @@ public final class PlugHatia extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
-
+        EventManager.anvilEvents.saveAnvils();
         getServer().getConsoleSender().sendMessage(ChatColor.RED + "PlugHatia has shut down!");
 
     }

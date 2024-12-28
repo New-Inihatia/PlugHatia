@@ -36,7 +36,6 @@ public abstract class Heatable {
     public abstract void recipesInit();
 
     public static ItemStack update(ItemStack itemInstance) {
-        System.out.println("Updating item: " + itemInstance);
         World world = Bukkit.getServer().getWorlds().get(0);
         long gameTime = world.getGameTime();
 
@@ -97,7 +96,6 @@ public abstract class Heatable {
         } else {
             meta.setCustomModelData(regularCustomModelData);
             meta.setMaxStackSize(defaultStackSize);
-            System.out.println("Set stack size to default stack size: " + defaultStackSize);
         }
         List<String> lore = new ArrayList<>();
         lore.add("Temperature: " + temperature);

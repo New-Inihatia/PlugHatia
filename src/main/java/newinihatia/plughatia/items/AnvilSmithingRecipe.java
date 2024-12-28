@@ -13,6 +13,7 @@ public class AnvilSmithingRecipe {
     private int redPointer;
     private int experience;
     private int mininmumHammerStrength = 1;
+    private List<String> allowedRaces = new ArrayList<>(List.of("Human", "Hobbit", "Elf", "Dwarf", "Orc"));
     private String[] lastThreeHits = {null, null, null}; // ordered from first to last
     /*
     * Hits are denoted by capitalized initials, e.g.: Hit, Heavy = HH
@@ -39,6 +40,18 @@ public class AnvilSmithingRecipe {
         this.mininmumHammerStrength = mininmumHammerStrength;
     }
 
+    public AnvilSmithingRecipe(ItemStack result, ItemStack[] ingredients, int greenPointerStart, int redPointer, int experience, int mininmumHammerStrength, List<String> allowedRaces) {
+        this.result = result;
+        for (ItemStack ingredient : ingredients) {
+            this.ingredients.add(ingredient);
+        }
+        this.greenPointerStart = greenPointerStart;
+        this.redPointer = redPointer;
+        this.experience = experience;
+        this.mininmumHammerStrength = mininmumHammerStrength;
+        this.allowedRaces = allowedRaces;
+    }
+
     public AnvilSmithingRecipe(ItemStack result, ItemStack[] ingredients, String[] lastThreeHits, int greenPointerStart, int redPointer, int experience) {
         this.result = result;
         for (ItemStack ingredient : ingredients) {
@@ -60,6 +73,18 @@ public class AnvilSmithingRecipe {
         this.redPointer = redPointer;
         this.experience = experience;
         this.mininmumHammerStrength = mininmumHammerStrength;
+    }
+
+    public AnvilSmithingRecipe(ItemStack result, ItemStack[] ingredients, String[] lastThreeHits, int greenPointerStart, int redPointer, int experience, int mininmumHammerStrength, List<String> allowedRaces) {
+        this.result = result;
+        for (ItemStack ingredient : ingredients) {
+            this.ingredients.add(ingredient);
+        }
+        this.greenPointerStart = greenPointerStart;
+        this.redPointer = redPointer;
+        this.experience = experience;
+        this.mininmumHammerStrength = mininmumHammerStrength;
+        this.allowedRaces = allowedRaces;
     }
 
     public int getMinimumHammerStrength() {
@@ -88,5 +113,9 @@ public class AnvilSmithingRecipe {
 
     public int getExperience() {
         return experience;
+    }
+
+    public List<String> getAllowedRaces() {
+        return allowedRaces;
     }
 }

@@ -8,17 +8,17 @@ public class IronAnvilMenu extends AnvilMenu {
     public IronAnvilMenu() {
         super(AnvilRecipes.ironAnvilWeldingRecipes);
         this.setTitle("Iron Anvil");
+        anvilTypeString = "iron";
     }
 
     @Override
     public void recipesFunction(Player player) {
-        new SmithingRecipesMenu().displayTo(player);
+        new SmithingRecipesMenu(player).displayTo(player);
     }
 
     private class SmithingRecipesMenu extends AnvilMenu.SmithingRecipesMenu {
-        public SmithingRecipesMenu() {
-            super(IronAnvilMenu.this, AnvilRecipes.ironAnvilSmithingRecipes);
-            init();
+        public SmithingRecipesMenu(Player player) {
+            super(IronAnvilMenu.this, AnvilRecipes.ironAnvilSmithingRecipes, player);
         }
     }
 }
