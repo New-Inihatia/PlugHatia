@@ -31,7 +31,7 @@ public class setName implements CommandExecutor {
         for (int i = 1; i < args.length; i++) {
             name += args[i] + " ";
         }
-        name.trim();
+        name = name.trim();
         String targetUsername = args[0];
 
         PlayerObj JSONplayer = PlayerStorageUtil.findPlayer(targetUsername);

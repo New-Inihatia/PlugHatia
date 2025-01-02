@@ -1,6 +1,7 @@
 package newinihatia.plughatia.events;
 
 import newinihatia.plughatia.PlugHatia;
+import newinihatia.plughatia.events.effects.*;
 import newinihatia.plughatia.events.elvenSteel.CraftElvenSteelArmor;
 import newinihatia.plughatia.events.elvenSteel.CraftElvenSteelIngot;
 import newinihatia.plughatia.events.elvenSteel.CraftElvenSteelTools;
@@ -53,13 +54,9 @@ public class EventManager {
 
         getServer().getPluginManager().registerEvents(new HobbitEquipBoots(), PlugHatia.getPlugin());
 
-        getServer().getPluginManager().registerEvents(new MobNeutralityTowardsOrcs(), PlugHatia.getPlugin());
-
         getServer().getPluginManager().registerEvents(new SpearThrow(), PlugHatia.getPlugin());
 
         getServer().getPluginManager().registerEvents(new MenuListener(), PlugHatia.getPlugin());
-
-//        getServer().getPluginManager().registerEvents(new AnvilUse(), PlugHatia.getPlugin());
 
         getServer().getPluginManager().registerEvents(anvilEvents, PlugHatia.getPlugin());
 
@@ -67,6 +64,9 @@ public class EventManager {
 
         getServer().getPluginManager().registerEvents(new ItemTemperatureControl(), PlugHatia.getPlugin());
 
+        getServer().getPluginManager().registerEvents(new OrcsAndAllies(), PlugHatia.getPlugin());
+
+        getServer().getPluginManager().registerEvents(new OrcCraftSpawnEggs(), PlugHatia.getPlugin());
     }
 
 }

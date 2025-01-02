@@ -1,4 +1,4 @@
-package newinihatia.plughatia.events;
+package newinihatia.plughatia.events.effects;
 
 import newinihatia.plughatia.utils.PlayerStorageUtil;
 import org.bukkit.entity.Player;

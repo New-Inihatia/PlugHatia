@@ -9,7 +9,13 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.io.BukkitObjectInputStream;
+import org.bukkit.util.io.BukkitObjectOutputStream;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -205,6 +211,39 @@ public class ItemManager {
             }
         }
         return areEquivalent(item1, item2);
+    }
+
+    public static String serializeItemStack(ItemStack item) {
+        String encodedObject = null;
+        if (item != null) {
+            try {
+                ByteArrayOutputStream io = new ByteArrayOutputStream();
+                BukkitObjectOutputStream os = new BukkitObjectOutputStream(io);
+
+                os.writeObject(item);
+                os.flush();
+
+                byte[] serializedObject = io.toByteArray();
+
+                encodedObject = Base64.getEncoder().encodeToString(serializedObject);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return encodedObject;
+    }
+
+    public static ItemStack deserializeItemStack(String encodedObject) {
+        ItemStack item = null;
+        try {
+            byte[] decodedObject = Base64.getDecoder().decode(encodedObject);
+            ByteArrayInputStream io = new ByteArrayInputStream(decodedObject);
+            BukkitObjectInputStream is = new BukkitObjectInputStream(io);
+            item = (ItemStack) is.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return item;
     }
 
 }

@@ -1,5 +1,6 @@
 package newinihatia.plughatia.objects;
 
+import newinihatia.plughatia.items.ItemManager;
 import newinihatia.plughatia.menus.anvils.AnvilMenu;
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
@@ -25,22 +26,7 @@ public class AnvilObj {
         anvilType = anvilMenu.getAnvilTypeString();
         for (Map.Entry<Integer, ItemStack> entry : anvilMenu.getItems().entrySet()) {
             ItemStack item = entry.getValue();
-            if (item != null) {
-                try {
-                    ByteArrayOutputStream io = new ByteArrayOutputStream();
-                    BukkitObjectOutputStream os = new BukkitObjectOutputStream(io);
-
-                    os.writeObject(item);
-                    os.flush();
-
-                    byte[] serializedObject = io.toByteArray();
-
-                    String encodedObject = Base64.getEncoder().encodeToString(serializedObject);
-                    items.put(entry.getKey(), encodedObject);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+            items.put(entry.getKey(), ItemManager.serializeItemStack(item));
         }
     }
 

@@ -1,4 +1,4 @@
-package newinihatia.plughatia.events;
+package newinihatia.plughatia.events.effects;
 
 import newinihatia.plughatia.objects.PlayerObj;
 import newinihatia.plughatia.utils.PlayerStorageUtil;
@@ -24,7 +24,7 @@ public class HumanResilience implements Listener {
     @EventHandler
     public static void onPlayerHurt(EntityDamageByEntityEvent e) {
 
-        if (!e.getEntityType().equals(EntityType.PLAYER)) {
+        if (e.getEntityType() != EntityType.PLAYER) {
             return;
         }
 

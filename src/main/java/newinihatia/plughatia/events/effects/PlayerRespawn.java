@@ -1,6 +1,7 @@
-package newinihatia.plughatia.events;
+package newinihatia.plughatia.events.effects;
 
 import newinihatia.plughatia.PlugHatia;
+import newinihatia.plughatia.events.BannedItems;
 import newinihatia.plughatia.objects.PlayerObj;
 import newinihatia.plughatia.utils.PlayerStorageUtil;
 import org.bukkit.Bukkit;

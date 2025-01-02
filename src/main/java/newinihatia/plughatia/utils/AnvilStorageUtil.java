@@ -2,6 +2,7 @@ package newinihatia.plughatia.utils;
 
 import com.google.gson.Gson;
 import newinihatia.plughatia.PlugHatia;
+import newinihatia.plughatia.items.ItemManager;
 import newinihatia.plughatia.menus.anvils.AnvilMenu;
 import newinihatia.plughatia.menus.anvils.IronAnvilMenu;
 import newinihatia.plughatia.objects.AnvilObj;
@@ -61,15 +62,7 @@ public class AnvilStorageUtil {
                 continue;
             }
             for (Map.Entry<Integer, String> entry : anvilObj.getItems().entrySet()) {
-                try {
-                    byte[] decodedObject = Base64.getDecoder().decode(entry.getValue());
-                    ByteArrayInputStream io = new ByteArrayInputStream(decodedObject);
-                    BukkitObjectInputStream is = new BukkitObjectInputStream(io);
-                    ItemStack item = (ItemStack) is.readObject();
-                    anvils.get(anvilObj.getLocation()).addItem(entry.getKey(), item);
-                } catch (IOException | ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
+                anvils.get(anvilObj.getLocation()).addItem(entry.getKey(), ItemManager.deserializeItemStack(entry.getValue()));
             }
         }
 
